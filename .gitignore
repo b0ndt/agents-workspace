@@ -1,0 +1,17 @@
+node_modules/
+dist/
+
+# Environment variables (NEVER commit)
+.env
+.env.local
+.env.*.local
+
+# Git worktrees created by pipeline
+.worktrees/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

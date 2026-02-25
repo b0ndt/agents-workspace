@@ -1,0 +1,56 @@
+---
+description: Project structure conventions for multi-agent workflow. Auto-applied when creating new projects or working with documentation files.
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Project Structure Conventions
+
+## Directory Layout
+
+When starting a new project, create this structure inside a project-specific directory:
+
+```
+<project-name>/
+├── docs/
+│   ├── requirements/
+│   │   ├── 00-project-brief.md
+│   │   ├── 01-requirements.md
+│   │   └── glossary.md
+│   ├── architecture/
+│   │   ├── 00-system-overview.md
+│   │   ├── api-spec.md
+│   │   ├── data-model.md
+│   │   └── adr/
+│   │       └── ADR-001-<slug>.md
+│   ├── design/
+│   │   ├── 00-user-flows.md
+│   │   ├── 01-design-system.md
+│   │   ├── screens/
+│   │   │   └── <screen-name>.md
+│   │   └── components/
+│   │       └── <component-name>.md
+│   └── reviews/
+│       └── review-<date>-<scope>.md
+├── src/
+├── tests/
+├── README.md
+└── ...
+```
+
+## Document Conventions
+
+- All documentation in Markdown
+- Diagrams in Mermaid syntax (renderable in GitHub/Cursor)
+- Use relative links between documents
+- Date format: YYYY-MM-DD
+- File naming: kebab-case, numbered prefixes for ordered documents
+
+## Cross-Referencing
+
+Documents should reference each other to maintain traceability:
+
+- Requirements → referenced by Architecture docs (e.g., "Implements REQ-003")
+- Architecture → referenced by Design docs (e.g., "Based on ADR-002")
+- Design → referenced by Engineers in code comments and commit messages
+- Reviews → reference specific requirements and code locations

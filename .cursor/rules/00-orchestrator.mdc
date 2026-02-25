@@ -1,0 +1,126 @@
+---
+description: Master orchestrator for the multi-agent development workflow. Coordinates all agent phases, handoffs, worktrees, pipeline automation, and Vercel deployments.
+alwaysApply: true
+---
+
+# Multi-Agent Development Orchestrator
+
+You are operating inside a multi-agent development workflow. This workspace manages software projects through a pipeline of 5 specialized agent roles. Agents can run autonomously via the Cloud Agents API or manually via Cursor Custom Modes.
+
+## Agent Roles
+
+| Agent | Custom Mode | Model | Responsibility |
+|-------|-------------|-------|----------------|
+| Requirements Engineer | `Req Engineer` | Claude 4.6 Opus | Eliciting, structuring, and documenting requirements |
+| Architect | `Architect` | Claude 4.6 Opus | Technical specs, system design, ADRs |
+| UX/UI Designer | `UX Designer` | Gemini 3.1 Pro | Visual design (Neo-Skeuomorphic Cinematic), component specs |
+| Engineer | `Engineer` | Claude 4.6 Sonnet | Implementation, tests, Vercel deployment |
+| QA Reviewer | `QA Reviewer` | Claude 4.6 Sonnet | Code review, security audit, Vercel preview check |
+
+## Two Operating Modes
+
+### Mode A: Autonomous Pipeline
+
+Run all 5 agents sequentially via a single command. Each agent is a Cursor Cloud Agent that reads the previous agent's artifacts and produces its own.
+
+```bash
+npx tsx scripts/pipeline.ts --project "my-app" --prompt "Build a..."
+```
+
+The pipeline handles:
+- Creating the feature branch (`feat/<project>`)
+- Launching each agent with the right model and context
+- Polling for completion before starting the next phase
+- Pushing code to trigger Vercel Preview Deployments
+
+See `docs/setup/pipeline.md` for setup instructions.
+
+### Mode B: Manual Custom Modes
+
+Switch between Custom Modes in Cursor's chat UI. Each mode activates the right model and tools for that agent role.
+
+1. Switch to **Req Engineer** mode → define requirements
+2. Switch to **Architect** mode → design the system
+3. Switch to **UX Designer** mode → create the visual design
+4. Switch to **Engineer** mode → implement the code
+5. Switch to **QA Reviewer** mode → review everything
+
+See `docs/setup/custom-modes.md` for setup instructions.
+
+## Pipeline Phases
+
+```
+[1] Requirements → [2] Architecture → [3] Design → [4] Engineering → [5] QA Review
+        ↑                                                    │              │
+        │                                              Vercel Preview       │
+        └────────────────────── Feedback Loop ─────────────────────────────┘
+```
+
+Each phase produces artifacts that downstream phases MUST read before starting.
+
+## Agent Handoff Protocol
+
+When an agent completes its phase, it writes a **handoff summary** at the end of its primary output document:
+
+```markdown
+## Handoff
+
+**Phase**: <phase name>
+**Status**: Complete
+**Key artifacts**:
+- <file path 1> — <brief description>
+- <file path 2> — <brief description>
+
+**Open questions for next phase**:
+- <anything the next agent should pay attention to>
+
+**Blockers**: None | <description>
+```
+
+This enables downstream agents (especially in autonomous mode) to quickly understand what was produced and what needs attention.
+
+## Project Structure
+
+Each project lives in its own directory:
+
+```
+<project-name>/
+├── docs/
+│   ├── requirements/      ← Phase 1: Req Engineer
+│   ├── architecture/      ← Phase 2: Architect
+│   │   └── adr/
+│   ├── design/            ← Phase 3: UX Designer
+│   │   ├── screens/
+│   │   └── components/
+│   └── reviews/           ← Phase 5: QA Reviewer
+├── src/                   ← Phase 4: Engineer
+├── tests/
+├── vercel.json            ← Vercel config
+└── README.md
+```
+
+## Git Worktree Strategy
+
+For parallel work on multiple projects, use git worktrees:
+
+```bash
+bash scripts/worktree.sh create <project-name>
+```
+
+This creates an isolated working directory at `../AGENTS-wt-<project>/` on branch `feat/<project>`. Each worktree can run the pipeline independently without interfering with other projects.
+
+## Vercel Preview Workflow
+
+1. Engineer pushes code to `feat/<project>` branch
+2. Vercel automatically builds a Preview Deployment
+3. QA Reviewer checks the live preview URL as part of the review
+4. User approves and merges to `main` → Vercel Production Deployment
+
+## General Rules
+
+1. **Human-in-the-loop**: The user approves all phase transitions and major decisions (in manual mode). In autonomous mode, the user reviews the final output.
+2. **Artifact-driven**: Each agent produces structured markdown documents, not just chat responses.
+3. **Traceability**: Every decision links back through the chain (REQ → ADR → Design → Code → Review).
+4. **No assumptions**: If information is missing, ask — don't guess.
+5. **Incremental delivery**: Prefer small, reviewable increments over big-bang deliveries.
+6. **Handoff protocol**: Every agent writes a handoff summary for the next phase.

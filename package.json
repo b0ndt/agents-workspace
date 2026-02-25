@@ -1,0 +1,23 @@
+{
+  "name": "agents-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-Agent Development Workspace — automated pipeline via Cursor Cloud Agents API",
+  "scripts": {
+    "pipeline": "tsx scripts/pipeline.ts",
+    "pipeline:status": "tsx scripts/pipeline.ts --status",
+    "worktree:create": "bash scripts/worktree.sh create",
+    "worktree:list": "bash scripts/worktree.sh list",
+    "worktree:remove": "bash scripts/worktree.sh remove",
+    "worktree:prune": "bash scripts/worktree.sh prune"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
