@@ -137,7 +137,7 @@ output: "public/assets/logo.png"
 
 Include ALL visual assets the app needs: logo, favicon, og-image, hero/banner image, background textures, illustrations, feature images, etc.
 Use exact hex values from design-spec.md. Each prompt must describe a photorealistic or stylized image — NOT an SVG or vector.
-Minimum assets: logo (1:1), favicon (1:1), og-image (16:9). Add hero/banner (16:9) and any other images visible in the mockup.` : ""}
+Minimum assets: logo (1:1), favicon (1:1), og-image (16:9). Add hero/banner (16:9) and any other images visible in the mockup.`}
 ## Handoff — artifacts, blockers unrelated to image generation
 ${ENV_CHECK}`;
     },
