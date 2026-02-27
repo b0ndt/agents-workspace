@@ -102,9 +102,10 @@ ${ENV_CHECK}`;
       const dc = c.designContext;
       const components = s === "nano" ? "Button, Card" : s === "micro" ? "Button, Card, Input, Badge" : "all components visible in mockup";
       const screens = s === "nano" ? "1 primary screen" : s === "micro" ? "2-3 screens" : "all major screens";
-      const assets = s !== "nano"
-        ? `\n6. docs/design/visual-prompts.md — ALL visual assets the app needs (see format below)`
-        : "";
+      const assetsLine = s === "nano"
+        ? `\n6. docs/design/visual-prompts.md — key visual assets (logo 1:1, hero 16:9, og-image 16:9)`
+        : `\n6. docs/design/visual-prompts.md — ALL visual assets the app needs (see format below)`;
+      const assets = assetsLine;
       return `Design Translator. PROJECT: ${c.project} | SCOPE: ${s.toUpperCase()}
 ${dc
   ? `APPROVED: ${dc.approvedMockupUrl} (${dc.variantName})`
@@ -119,7 +120,14 @@ Analyze mockup via vision → output:
 
 Mockup = source of truth. No invention. Every value extracted from Step 1.
 DO NOT generate images. DO NOT report missing image-generation API keys as blockers. The pipeline calls NanoBanana Pro automatically after you finish.
-${s !== "nano" ? `
+${s === "nano" ? `
+visual-prompts.md FORMAT — one ## section per asset, minimum: logo (1:1), og-image (16:9), hero (16:9):
+## Logo
+name: "logo"
+prompt: "<detailed image prompt with exact hex colors>"
+size: "1:1"
+output: "public/assets/logo.png"
+Include exact hex values from design-spec.md. Photorealistic or stylized raster images only.` : `
 visual-prompts.md FORMAT — one ## section per asset, the pipeline parses this:
 ## Logo
 name: "logo"
