@@ -4,6 +4,9 @@ import type { DesignVariantResult } from "./types.js";
 
 const V0_API = "https://api.v0.dev";
 
+// v0 Premium rate limits require longer backoff than the default 2s
+const V0_FETCH_OPTS = { retries: 5, baseDelayMs: 2_000, rateLimitDelayMs: 30_000 };
+
 async function v0Api(imageUrl: string, promptText: string): Promise<string | null> {
   const key = process.env.V0_API_KEY;
   if (!key) return null;
@@ -22,7 +25,7 @@ async function v0Api(imageUrl: string, promptText: string): Promise<string | nul
           ],
         }],
       }),
-    });
+    }, V0_FETCH_OPTS);
     if (!r.ok) { console.log(`  v0 API error: ${r.status} ${await r.text()}`); return null; }
     const res = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> };
     return res.choices?.[0]?.message?.content ?? null;
