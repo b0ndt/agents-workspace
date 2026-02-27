@@ -1,107 +1,112 @@
-# Pipeline Setup — Autonome Agent-zu-Agent Ausfuehrung
+# Pipeline Setup
 
-Die Pipeline startet alle 5 Agenten nacheinander als Cursor Cloud Agents. Jeder Agent liest die Artefakte der vorherigen Phase und produziert seine eigenen.
+The pipeline runs 5 agents sequentially as Cursor Cloud Agents. Each project gets its own GitHub repo, optional Slack channel, and Vercel deployment.
 
-## Voraussetzungen
+## Prerequisites
 
-1. **Cursor Pro** (oder hoeher) mit aktivierter Cloud Agents API
-2. **Git Repository** — der Workspace muss ein Git-Repo sein
-3. **Node.js 18+** installiert
+- **Cursor Pro** (or higher) with Cloud Agents API
+- **Node.js 18+**
+- **GitHub account** with a Personal Access Token
 
-## Einrichtung
-
-### 1. Dependencies installieren
+## Setup
 
 ```bash
 npm install
+cp .env.example .env   # fill in tokens
 ```
 
-### 2. Environment einrichten
+### Required Tokens
 
-Kopiere `.env.example` nach `.env` und trage die Keys ein:
-
-```bash
-cp .env.example .env
-```
-
-Benoetigte Tokens:
-
-| Variable | Wo erstellen | Wofuer |
-|----------|-------------|--------|
+| Variable | Where | Purpose |
+|----------|-------|---------|
 | `CURSOR_API_KEY` | [cursor.com/dashboard → Integrations](https://cursor.com/dashboard?tab=integrations) | Cloud Agents API |
-| `GITHUB_PERSONAL_ACCESS_TOKEN` | [github.com/settings/tokens](https://github.com/settings/tokens) | Repo-Erstellung, Issues, PRs |
-| `GITHUB_REPO_OWNER` | Dein GitHub-Username | Repo-Owner fuer neue Projekte |
-| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) | Preview Deployments |
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | Direkte LLM-Aufrufe (optional) |
+| `GITHUB_PERSONAL_ACCESS_TOKEN` | [github.com/settings/tokens](https://github.com/settings/tokens) | Repo creation, branches |
+| `GITHUB_REPO_OWNER` | Your GitHub username | Repo owner |
+| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) | Preview deployments |
 
-### 3. Git Repo einrichten (falls noch nicht geschehen)
+### Optional: NanoBanana (AI image generation)
 
-```bash
-git init
-git add .
-git commit -m "initial: multi-agent workspace setup"
-git remote add origin https://github.com/your-user/your-repo.git
-git push -u origin main
-```
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `NANOBANANA_API_KEY` | [nanobananaapi.ai/api-key](https://nanobananaapi.ai/api-key) | Logos, mockups, hero images via Gemini 3.1 Flash |
 
-## Pipeline starten
+When set, the pipeline generates images from `docs/design/visual-prompts.md` after the Creative Director phase.
 
-```bash
-npx tsx scripts/pipeline.ts \
-  --project "mein-projekt" \
-  --prompt "Baue eine moderne Todo-App mit Kategorien, Faelligkeitsdaten und Dark Mode"
-```
+### Optional: Slack
 
-### Was passiert
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `SLACK_BOT_TOKEN` | Your Slack App | Channel creation, notifications, HitL |
 
-```
-Phase 1: Requirements Engineer (Claude 4.6 Opus)
-  → Erstellt docs/requirements/ mit Project Brief, Requirements, Glossary
+Slack App scopes needed: `chat:write`, `channels:manage`, `channels:history`, `channels:read`.
 
-Phase 2: Architect (Claude 4.6 Opus)
-  → Liest Requirements, erstellt docs/architecture/ mit System Overview, ADRs, API Spec
+## Running the Pipeline
 
-Phase 3: UX Designer (Gemini 3.1 Pro)
-  → Liest Requirements + Architecture, erstellt docs/design/ mit Flows, Design System, Screen Specs
-
-Phase 4: Engineer (Claude 4.6 Sonnet)
-  → Liest alles, implementiert in src/ + tests/, pusht Branch → Vercel Preview
-
-Phase 5: QA Reviewer (Claude 4.6 Sonnet)
-  → Liest alles + Code, erstellt Review Report in docs/reviews/
-```
-
-Jede Phase wartet, bis die vorherige abgeschlossen ist (Polling alle 15 Sekunden).
-
-## Optionen
-
-```
---project, -p   Projektname (kebab-case, wird Verzeichnis + Branch-Name)
---prompt, -m    Projektbeschreibung / Feature-Wunsch
---status, -s    Status eines laufenden Agents pruefen (Agent-ID)
---help, -h      Hilfe anzeigen
-```
-
-## Agent-Status pruefen
+### New project
 
 ```bash
-npx tsx scripts/pipeline.ts --status agent_abc123def
+npx tsx scripts/pipeline.ts -p my-app -m "Build a modern todo app with..."
 ```
 
-## Vercel Integration
+This auto-creates `b0ndt/my-app` on GitHub if it doesn't exist.
 
-Wenn Vercel mit dem Repository verbunden ist, generiert der Push auf `feat/<project>` automatisch ein Preview Deployment. Der QA Reviewer kann die Preview-URL pruefen.
+### Iterate on existing project
 
-Vercel einrichten:
-1. Verbinde das Repo unter [vercel.com/new](https://vercel.com/new)
-2. Setze das Root Directory auf `<project-name>/` (je nach Projektstruktur)
-3. Jeder Push auf `feat/*` Branches erzeugt ein Preview
+```bash
+npx tsx scripts/pipeline.ts -p my-app -m "Add dark mode and calendar view" --interactive
+```
 
-## Fehlerbehebung
+Same project name = same repo. Agents branch off `main` with all prior work.
 
-| Problem | Loesung |
-|---------|---------|
-| `CURSOR_API_KEY not set` | `.env` Datei erstellen, Key eintragen |
-| `Could not detect repository URL` | `REPOSITORY_URL` in `.env` setzen oder `git remote add origin ...` |
-| Agent stuck / timeout | Status mit `--status` pruefen; ggf. im Cursor Dashboard nachschauen |
-| Rate limit (429) | Script wartet automatisch 60s und versucht erneut |
+### Interactive mode (recommended)
+
+```bash
+npx tsx scripts/pipeline.ts -p my-app -m "..." --interactive
+```
+
+After each phase:
+- **Terminal**: `a` (approve) / `f <msg>` (followup) / `s` (stop) / `r` (retry)
+- **Slack**: Same commands as thread replies in `#proj-my-app`
+
+### Resume from phase N
+
+```bash
+npx tsx scripts/pipeline.ts -p my-app -m "..." --from 3 --ref cursor/arch-branch
+```
+
+## What Happens
+
+```
+Phase 1: Requirements Engineer → docs/requirements/
+Phase 2: Architect → docs/architecture/ + ADRs
+Phase 3: Creative Director → docs/design/ + wireframes/ + visual-prompts.md
+         → NanoBanana generates logos, mockups (if NANOBANANA_API_KEY set)
+         → Wireframe preview deployed to Vercel for review
+Phase 4: Engineer → src/ + tests/ + vercel.json
+Phase 5: QA Reviewer → docs/reviews/
+Final:   Vercel Preview Deploy → Merge to main
+```
+
+With Slack enabled, all phases post updates to `#proj-<project>`.
+
+## CLI Reference
+
+```
+-p, --project      Project name (kebab-case)
+-m, --prompt       Project/feature description
+-f, --from         Start from phase N (1-5)
+-r, --ref          Source branch (with --from)
+-i, --interactive  Pause after each phase
+-s, --status       Check agent status
+--models           List available models
+--verify           Verify API key
+```
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Missing env var | Check `.env` file |
+| Branch not found | Ensure Cursor GitHub App has repo access |
+| Agent ERROR | Check with `--status <id>` |
+| Rate limit (429) | Pipeline auto-waits 60s |

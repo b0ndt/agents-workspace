@@ -1,0 +1,25 @@
+---
+description: Git worktree strategy for parallel project work. Activates when discussing worktrees or parallel development.
+alwaysApply: false
+---
+
+# Git Worktree Strategy
+
+Use worktrees to work on multiple projects simultaneously in isolated directories.
+
+## Commands
+
+```bash
+bash scripts/worktree.sh create <project>    # New worktree
+bash scripts/worktree.sh list                # List active
+bash scripts/worktree.sh remove <project>    # Clean up
+bash scripts/worktree.sh prune               # Remove stale
+```
+
+Worktrees are created at `../AGENTS-wt-<project>/` on branch `feat/<project>`.
+
+## Rules
+
+- Never check out the same branch in two worktrees
+- Use the helper script to maintain naming conventions
+- Merge back to `main` when complete, then remove the worktree

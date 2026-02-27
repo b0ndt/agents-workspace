@@ -1,0 +1,42 @@
+---
+description: Project structure conventions for the multi-agent pipeline. Auto-applied when working with docs.
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Project Structure
+
+Each project lives in its own GitHub repo (`b0ndt/<project-name>`):
+
+```
+<project>/
+├── docs/
+│   ├── requirements/              ← Phase 1
+│   ├── architecture/              ← Phase 2
+│   │   └── adr/
+│   ├── design/                    ← Phase 3 + 4
+│   │   ├── design-exploration.md  ← Design directions (Phase 3 — text prompts only)
+│   │   ├── approved-direction.md  ← Selected variant (pipeline writes after HitL)
+│   │   ├── mockups/               ← AI-generated mockups (PNG — pipeline via NanoBanana)
+│   │   ├── design-spec.md         ← Extracted design spec (Phase 4)
+│   │   ├── visual-prompts.md      ← Brand asset prompts (Phase 4 — text only)
+│   │   └── v0-scaffold.md         ← Optional v0 code scaffold (pipeline)
+│   └── reviews/                   ← Phase 6
+├── design-system/                 ← Phase 4
+│   ├── tailwind.config.ts
+│   ├── globals.css
+│   └── components/ui/
+├── screens/                       ← Phase 4
+├── public/                        ← Brand assets (PNG — pipeline via NanoBanana)
+├── src/                           ← Phase 5
+├── tests/
+├── vercel.json
+└── README.md
+```
+
+## Conventions
+
+- All documentation in Markdown, diagrams in Mermaid
+- Date format: YYYY-MM-DD
+- File naming: kebab-case
+- Cross-reference: REQ → ADR → Design → Code → Review

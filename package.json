@@ -6,7 +6,9 @@
   "description": "Multi-Agent Development Workspace — automated pipeline via Cursor Cloud Agents API",
   "scripts": {
     "pipeline": "tsx scripts/pipeline.ts",
+    "pipeline:interactive": "tsx scripts/pipeline.ts --interactive",
     "pipeline:status": "tsx scripts/pipeline.ts --status",
+    "webhook": "tsx scripts/webhook-server.ts",
     "worktree:create": "bash scripts/worktree.sh create",
     "worktree:list": "bash scripts/worktree.sh list",
     "worktree:remove": "bash scripts/worktree.sh remove",

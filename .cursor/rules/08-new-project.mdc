@@ -1,0 +1,18 @@
+---
+description: Scaffolds a new project. Activates when user says "start a new project" or "scaffold project".
+alwaysApply: false
+---
+
+# New Project Scaffolding
+
+When starting a new project:
+
+1. Ask for the project name if not provided (kebab-case)
+2. The pipeline auto-creates the GitHub repo — just run:
+   ```
+   npx tsx scripts/pipeline.ts -p <name> -m "<description>" --interactive
+   ```
+3. Suggest starting with the Requirements Engineer phase
+
+Do NOT create code files — that's the Engineer's job.
+Do NOT make up requirements — that's the Requirements Engineer's job.

@@ -1,156 +1,152 @@
-# Multi-Agent Development Workspace
+# Multi-Agent Development Pipeline
 
-Ein modernes, agentengesteuertes Entwicklungs-Setup fuer Cursor IDE. Projekte werden durch eine Pipeline von 5 spezialisierten KI-Agenten gefuehrt — von der Idee bis zum fertigen, geprueften Code auf Vercel.
+A 6-phase agent-driven development system for Cursor IDE. Enter a prompt, and specialized AI agents build your project — from requirements to deployed code on Vercel.
 
-## Agenten-Uebersicht
+Each project gets its own GitHub repo, Slack channel, and Vercel deployment.
 
-| # | Agent | Custom Mode | Modell | Aufgabe |
-|---|-------|-------------|--------|---------|
-| 1 | **Requirements Engineer** | `Req Engineer` | Claude 4.6 Opus | Anforderungen, User Stories, Akzeptanzkriterien |
-| 2 | **Architect** | `Architect` | Claude 4.6 Opus | Systemarchitektur, ADRs, API-Specs, Datenmodelle |
-| 3 | **UX/UI Designer** | `UX Designer` | Gemini 3.1 Pro | Neo-Skeuomorphic Design System, User Flows, Screen Specs |
-| 4 | **Engineer** | `Engineer` | Claude 4.6 Sonnet | Code-Implementierung, Tests, Vercel Deployment |
-| 5 | **QA Reviewer** | `QA Reviewer` | Claude 4.6 Sonnet | Security Audit, Code Review, Vercel Preview Check |
+## Agents
 
-Jeder Agent hat sein eigenes Modell und eigene Tool-Berechtigungen via Cursor Custom Modes.
+| # | Agent | Cloud Model | Produces |
+|---|-------|-------------|----------|
+| 1 | **Requirements Engineer** | gpt-5.2-high | Requirements, user stories, glossary |
+| 2 | **Architect** | claude-4.6-opus-high-thinking | System design, ADRs, API specs, data model |
+| 3 | **Design Explorer** | gpt-5.2-high | Design directions (text prompts → NanoBanana mockups) |
+| 4 | **Design Translator** | claude-4.6-opus-high-thinking | Design system, screens, brand asset prompts |
+| 5 | **Engineer** | gpt-5.3-codex-high | Production code, tests, Vercel deployment |
+| 6 | **QA Reviewer** | composer-1.5 | Review report, security audit |
 
-## Zwei Betriebsmodi
-
-### Modus A: Autonome Pipeline (vollautomatisch)
-
-Ein einziger Befehl startet alle 5 Agenten nacheinander als Cursor Cloud Agents:
-
-```bash
-npx tsx scripts/pipeline.ts --project "mein-projekt" --prompt "Baue eine moderne Todo-App mit..."
-```
-
-Die Pipeline:
-- Erstellt einen Feature-Branch (`feat/mein-projekt`)
-- Startet jeden Agenten mit dem richtigen Modell
-- Wartet auf Abschluss, bevor die naechste Phase startet
-- Pusht Code fuer automatische Vercel Preview Deployments
-- Der QA Reviewer prueft am Ende alles inkl. Live-Preview
-
-### Modus B: Manuelle Custom Modes
-
-Wechsle zwischen Custom Modes im Cursor Chat:
-
-1. **Req Engineer** → Anforderungen definieren
-2. **Architect** → Architektur planen
-3. **UX Designer** → Design erstellen
-4. **Engineer** → Code implementieren
-5. **QA Reviewer** → Code pruefen
-
-## Workflow
-
-```
-Prompt → Req Engineer → Architect → UX Designer → Engineer → QA Reviewer → Fertig
-                                                       │            │
-                                                 Vercel Preview     │
-                    ← ─ ─ ─ ─ ─ ─ ─ Feedback Loop ─ ─ ─ ─ ─ ─ ─ ─┘
-```
-
-## Ersteinrichtung
-
-### 1. Dependencies
+## Quick Start
 
 ```bash
 npm install
+cp .env.example .env   # fill in your tokens
+
+# Preview what will happen (no agents launched)
+npx tsx scripts/pipeline.ts -p my-app -m "Build a modern todo app" --dry-run
+
+# New project (auto-creates GitHub repo + Slack channel)
+npx tsx scripts/pipeline.ts -p my-app -m "Build a modern todo app" --interactive
+
+# Override auto-detected scope
+npx tsx scripts/pipeline.ts -p my-app -m "Build a modern todo app" --scope nano
+
+# Iterate on existing project (same name = same repo)
+npx tsx scripts/pipeline.ts -p my-app -m "Add dark mode" --interactive
+
+# Resume from phase 4
+npx tsx scripts/pipeline.ts -p my-app -m "..." --from 4 --ref cursor/branch
 ```
 
-### 2. Cursor Custom Modes (fuer Modus B)
+## How It Works
 
-1. `Cmd+,` → **Features** → **Chat** → **Custom Modes** aktivieren
-2. 5 Custom Modes einrichten → [Anleitung](docs/setup/custom-modes.md)
+```
+Prompt → ensureRepo → inferScope
+  → Phase 1: Requirements Engineer
+  → Phase 2: Architect
+  → Phase 3: Design Explorer → NanoBanana mockup variants → HitL selection
+  → Phase 4: Design Translator → design-system + screens → NanoBanana brand assets
+  → Phase 5: Engineer → app logic on top of design system
+  → Phase 6: QA Reviewer → review report (skipped in nano scope)
+  → Final Vercel deploy + merge/PR
+  → Status updates in #proj-<project> on Slack
+```
 
-### 3. Cloud Agents API (fuer Modus A)
+## Scope (auto-detected)
 
-1. API Key erstellen unter [cursor.com/dashboard → Integrations](https://cursor.com/dashboard?tab=integrations)
-2. `.env` einrichten → [Anleitung](docs/setup/pipeline.md)
+| Level | Trigger | Effect |
+|-------|---------|--------|
+| nano | ≤30 words or "simple/todo/landing" | Minimal docs, 2 variants, QA skipped |
+| micro | ≤50 words | Lean docs, 2 variants, light QA |
+| standard | 50-120 words | Full docs, 3 variants |
+| large | >120 words or 4+ complexity signals | Extended docs, 4 variants |
 
-### 4. Vercel
+Override with `--scope nano|micro|standard|large`.
 
-1. Repository unter [vercel.com/new](https://vercel.com/new) verbinden
-2. Jeden Push auf `feat/*` Branches erzeugt ein Preview Deployment
+## Image Generation
 
-### 5. Git (falls noch nicht eingerichtet)
+Agents write text prompts only — **they never generate images**.
+The pipeline orchestrator calls NanoBanana Pro automatically:
+- After Phase 3: mockup variants from `design-exploration.md`
+- After Phase 4: brand assets from `visual-prompts.md`
+
+## Interactive Mode
+
+With `--interactive`, the pipeline pauses after each phase:
+- **Terminal**: `a` (approve) / `f <msg>` (followup) / `s` (stop) / `r` (retry)
+- **Slack**: Same commands as replies in the `#proj-<project>` channel thread
+
+## Required Tokens
+
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `CURSOR_API_KEY` | [cursor.com/dashboard](https://cursor.com/dashboard?tab=integrations) | Cloud Agents API |
+| `GITHUB_PERSONAL_ACCESS_TOKEN` | [github.com/settings/tokens](https://github.com/settings/tokens) | Repo creation, branches, merges |
+| `GITHUB_REPO_OWNER` | Your GitHub username | Repo owner |
+| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) | Deployments |
+| `NANOBANANA_API_KEY` | [nanobananaapi.ai](https://nanobananaapi.ai/api-key) | AI mockup/asset generation (optional) |
+| `V0_API_KEY` | [v0.dev/chat/settings/keys](https://v0.dev/chat/settings/keys) | Code scaffold from mockup (optional) |
+| `SLACK_BOT_TOKEN` | Your Slack App | Channel creation, HitL (optional) |
+| `SLACK_USER_ID` | Slack profile → Copy member ID | @mention in Slack (optional) |
+
+## MCP Setup
+
+The GitHub MCP server reads `GITHUB_PERSONAL_ACCESS_TOKEN` from your shell environment.
+Make sure the token is exported before Cursor starts:
 
 ```bash
-git init && git add . && git commit -m "initial: multi-agent workspace"
-git remote add origin https://github.com/<user>/<repo>.git
-git push -u origin main
+# Add to ~/.zshrc or ~/.bashrc:
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here
 ```
 
-## Neues Projekt starten
+> **Security**: `.cursor/mcp.json` is in `.gitignore` — never commit tokens in config files.
 
-### Automatisch (Pipeline)
-
-```bash
-npx tsx scripts/pipeline.ts -p mein-projekt -m "Baue eine moderne Todo-App mit Kategorien und Dark Mode"
-```
-
-### Manuell (Custom Modes)
-
-1. Sage dem Agenten: **"Starte ein neues Projekt: mein-projekt"**
-2. Wechsle zum Mode **Req Engineer** und definiere Anforderungen
-3. Wechsle Phase fuer Phase weiter — du entscheidest, wann es weitergeht
-
-## Parallele Projekte (Git Worktrees)
-
-Arbeite an mehreren Projekten gleichzeitig — jedes in seinem eigenen Worktree:
-
-```bash
-bash scripts/worktree.sh create todo-app       # Worktree erstellen
-bash scripts/worktree.sh create dashboard       # Noch eines
-bash scripts/worktree.sh list                   # Alle anzeigen
-bash scripts/worktree.sh remove todo-app        # Aufraumen
-```
-
-Jedes Worktree ist ein eigenes Verzeichnis mit eigenem Branch — komplett isoliert.
-
-## Projektstruktur
+## Project Structure
 
 ```
-AGENTS/                              ← Workspace Root
-├── .cursor/rules/                   ← Agenten-Regeln (automatisch geladen)
-│   ├── 00-orchestrator.mdc          ← Pipeline-Koordination
-│   ├── 01-req-engineer.mdc          ← Requirements Engineer
-│   ├── 02-architect.mdc             ← Architect
-│   ├── 03-ux-designer.mdc           ← UX/UI Designer (Neo-Skeuomorphic)
-│   ├── 04-engineer.mdc              ← Engineer + Vercel Deploy
-│   ├── 05-qa-reviewer.mdc           ← QA Reviewer + Preview Check
-│   ├── 06-project-structure.mdc     ← Projektstruktur-Konventionen
-│   ├── 07-new-project.mdc           ← Projekt-Scaffolding
-│   └── 08-worktree.mdc              ← Git Worktree Strategie
+AGENTS/                              # This workspace
+├── .cursor/
+│   ├── mcp.json                     # Vercel + GitHub MCP (gitignored)
+│   └── rules/                       # Agent rules (00-09)
 ├── scripts/
-│   ├── pipeline.ts                  ← Autonome Agent-Pipeline
-│   └── worktree.sh                  ← Git Worktree Helper
-├── docs/
-│   ├── templates/                   ← Dokument-Templates
-│   └── setup/
-│       ├── custom-modes.md          ← Custom Modes Einrichtung
-│       └── pipeline.md              ← Pipeline Einrichtung
-├── AGENTS.md                        ← Zentrale Agenten-Dokumentation
-├── package.json
-├── .env.example                     ← API Keys Template
-└── <projekt-name>/                  ← Deine Projekte (je ein Ordner)
+│   ├── pipeline.ts                  # Main pipeline orchestrator
+│   └── lib/                         # Modular pipeline components
+│       ├── types.ts                 # Shared types
+│       ├── phases.ts                # Agent prompts per phase
+│       ├── github.ts                # GitHub API (repo, branch, merge, PR)
+│       ├── cursor.ts                # Cursor Cloud Agents API
+│       ├── slack.ts                 # Slack + HitL
+│       ├── vercel.ts                # Vercel deployments
+│       ├── nanobanana.ts            # NanoBanana Pro image generation
+│       ├── v0.ts                    # v0 code scaffold
+│       ├── scope.ts                 # Scope/mode/phase inference
+│       ├── fetch-retry.ts           # Retry wrapper (3x exponential backoff)
+│       └── env.ts                   # Env helpers
+├── .env.example
+├── AGENTS.md
+└── README.md
 ```
 
-## Design-Sprache
-
-Der UX Designer Agent verwendet **Neo-Skeuomorphic Cinematic** — eine visuelle Sprache, die physische Materialien mit futuristischer Beleuchtung verbindet:
-
-- **Brushed Metal & Matte Panels** — Metalloberflaechentexturen als Primaerflaechen
-- **Neon Glow Accents** — Leuchtende Akzente fuer interaktive Elemente
-- **Embossed Labels** — Erhabene Typografie mit Licht/Schatten
-- **Cinematic Lighting** — Gerichtete Beleuchtung (145 Grad) fuer dramatische Tiefe
-- **Purposeful Animations** — Physikbasierte Transitions mit Bedeutung
-
-## Quellen & Best Practices
-
-- [Cursor Agent Best Practices](https://cursor.com/blog/agent-best-practices) — Offizielle Empfehlungen
-- [Agentic Workflows 2026 Playbook](https://promptengineering.org/agents-at-work-the-2026-playbook-for-building-reliable-agentic-workflows/) — Produktions-Patterns
-- [Git Worktrees for Parallel AI Development](https://dev.to/arifszn/git-worktrees-the-power-behind-cursors-parallel-agents-19j1) — Worktree-Konzept
-- [cursor-agent-team Framework](https://github.com/thiswind/cursor-agent-team) — Multi-Role Collaboration
-- [Cursor Cloud Agents API](https://cursor.com/docs/api) — API-Dokumentation
-- [Vercel Cursor Plugin](https://github.com/vercel-labs/cursor-plugin) — React/Next.js Best Practices
+Each project created by the pipeline:
+```
+<project>/                           # Own GitHub repo
+├── docs/
+│   ├── requirements/                # Phase 1
+│   ├── architecture/                # Phase 2
+│   │   └── adr/
+│   ├── design/                      # Phase 3 + 4
+│   │   ├── design-exploration.md    # Design directions (text prompts)
+│   │   ├── approved-direction.md    # Selected variant
+│   │   ├── mockups/                 # NanoBanana-generated PNGs
+│   │   ├── design-spec.md           # Extracted spec
+│   │   └── visual-prompts.md        # Brand asset prompts
+│   └── reviews/                     # Phase 6
+├── design-system/                   # Phase 4
+│   ├── tailwind.config.ts
+│   ├── globals.css
+│   └── components/ui/
+├── screens/                         # Phase 4
+├── public/                          # Brand assets (NanoBanana PNGs)
+├── src/                             # Phase 5
+├── tests/                           # Phase 5
+└── vercel.json
+```

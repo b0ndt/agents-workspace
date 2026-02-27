@@ -1,126 +1,74 @@
 ---
-description: Master orchestrator for the multi-agent development workflow. Coordinates all agent phases, handoffs, worktrees, pipeline automation, and Vercel deployments.
+description: Master orchestrator for the multi-agent pipeline. Coordinates phases, repo creation, Slack notifications, Vercel deployments, and human-in-the-loop feedback.
 alwaysApply: true
 ---
 
-# Multi-Agent Development Orchestrator
+# Multi-Agent Pipeline Orchestrator
 
-You are operating inside a multi-agent development workflow. This workspace manages software projects through a pipeline of 5 specialized agent roles. Agents can run autonomously via the Cloud Agents API or manually via Cursor Custom Modes.
+This workspace builds software projects through a 6-phase agent pipeline. Each project gets its own GitHub repo, Slack channel, and Vercel deployment.
 
-## Agent Roles
+## Agents
 
-| Agent | Custom Mode | Model | Responsibility |
-|-------|-------------|-------|----------------|
-| Requirements Engineer | `Req Engineer` | Claude 4.6 Opus | Eliciting, structuring, and documenting requirements |
-| Architect | `Architect` | Claude 4.6 Opus | Technical specs, system design, ADRs |
-| UX/UI Designer | `UX Designer` | Gemini 3.1 Pro | Visual design (Neo-Skeuomorphic Cinematic), component specs |
-| Engineer | `Engineer` | Claude 4.6 Sonnet | Implementation, tests, Vercel deployment |
-| QA Reviewer | `QA Reviewer` | Claude 4.6 Sonnet | Code review, security audit, Vercel preview check |
+| Phase | Agent | Cloud Model |
+|-------|-------|-------------|
+| 1 | Requirements Engineer | gpt-5.2-high |
+| 2 | Architect | claude-4.6-opus-high-thinking |
+| 3 | Design Explorer | gpt-5.2-high |
+| 4 | Design Translator | claude-4.6-opus-high-thinking |
+| 5 | Engineer | gpt-5.3-codex-high |
+| 6 | QA Reviewer | composer-1.5 |
 
-## Two Operating Modes
-
-### Mode A: Autonomous Pipeline
-
-Run all 5 agents sequentially via a single command. Each agent is a Cursor Cloud Agent that reads the previous agent's artifacts and produces its own.
-
-```bash
-npx tsx scripts/pipeline.ts --project "my-app" --prompt "Build a..."
-```
-
-The pipeline handles:
-- Creating the feature branch (`feat/<project>`)
-- Launching each agent with the right model and context
-- Polling for completion before starting the next phase
-- Pushing code to trigger Vercel Preview Deployments
-
-See `docs/setup/pipeline.md` for setup instructions.
-
-### Mode B: Manual Custom Modes
-
-Switch between Custom Modes in Cursor's chat UI. Each mode activates the right model and tools for that agent role.
-
-1. Switch to **Req Engineer** mode → define requirements
-2. Switch to **Architect** mode → design the system
-3. Switch to **UX Designer** mode → create the visual design
-4. Switch to **Engineer** mode → implement the code
-5. Switch to **QA Reviewer** mode → review everything
-
-See `docs/setup/custom-modes.md` for setup instructions.
-
-## Pipeline Phases
+## Pipeline Flow
 
 ```
-[1] Requirements → [2] Architecture → [3] Design → [4] Engineering → [5] QA Review
-        ↑                                                    │              │
-        │                                              Vercel Preview       │
-        └────────────────────── Feedback Loop ─────────────────────────────┘
+Prompt → ensureRepo → inferScope → [1] Req → [2] Arch → [3] Design Explorer → NanoBanana variants → HitL selection → [4] Design Translator → NanoBanana assets → [5] Eng → [6] QA → Vercel Deploy → Merge/PR
+                                                                                                                                                                                          ↑
+  Slack #proj-<name> ← status updates ← HitL prompts ← followup replies ────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Each phase produces artifacts that downstream phases MUST read before starting.
+## Scope (auto-detected from prompt)
 
-## Agent Handoff Protocol
+| Scope | When | Effect |
+|-------|------|--------|
+| nano | ≤30 words or "simple/todo/landing" | Minimal docs, 2 variants, QA skipped |
+| micro | ≤50 words, 1 signal | Lean docs, 2 variants, light QA |
+| standard | 50-120 words, 2 signals | Full docs, 3 variants, full QA |
+| large | >120 words or 4+ signals | Extended docs, 4 variants, full QA |
 
-When an agent completes its phase, it writes a **handoff summary** at the end of its primary output document:
+The pipeline prompt controls deliverable counts per scope. Agents receive SCOPE in their prompt and scale output accordingly.
 
-```markdown
+## Project Lifecycle
+
+- **New project**: `--project my-app` — creates `b0ndt/my-app` on GitHub
+- **Iterate**: Same `--project my-app` — detects existing repo, agents branch off `main`
+- **Resume**: `--from 4 --ref cursor/branch` — skip to Design Translator
+
+## Interactive Mode
+
+`--interactive` pauses after each phase for human review:
+- Terminal: `a` (approve) / `f <msg>` (followup) / `s` (stop) / `r` (retry)
+- Slack: Same commands as thread replies in `#proj-<name>`
+
+## Image Generation
+
+Agents NEVER generate images. They write text prompts only.
+The pipeline orchestrator calls NanoBanana Pro automatically:
+- After Phase 3 (Design Explorer): generates mockup variants from `design-exploration.md`
+- After Phase 4 (Design Translator): generates brand assets from `visual-prompts.md`
+
+## Handoff Protocol
+
+Every agent ends with:
+```
 ## Handoff
-
-**Phase**: <phase name>
-**Status**: Complete
-**Key artifacts**:
-- <file path 1> — <brief description>
-- <file path 2> — <brief description>
-
-**Open questions for next phase**:
-- <anything the next agent should pay attention to>
-
-**Blockers**: None | <description>
+Artifacts: <file list>
+Open questions: <items>
+Blockers: <app-related blockers only — never image generation>
 ```
 
-This enables downstream agents (especially in autonomous mode) to quickly understand what was produced and what needs attention.
+## Rules
 
-## Project Structure
-
-Each project lives in its own directory:
-
-```
-<project-name>/
-├── docs/
-│   ├── requirements/      ← Phase 1: Req Engineer
-│   ├── architecture/      ← Phase 2: Architect
-│   │   └── adr/
-│   ├── design/            ← Phase 3: UX Designer
-│   │   ├── screens/
-│   │   └── components/
-│   └── reviews/           ← Phase 5: QA Reviewer
-├── src/                   ← Phase 4: Engineer
-├── tests/
-├── vercel.json            ← Vercel config
-└── README.md
-```
-
-## Git Worktree Strategy
-
-For parallel work on multiple projects, use git worktrees:
-
-```bash
-bash scripts/worktree.sh create <project-name>
-```
-
-This creates an isolated working directory at `../AGENTS-wt-<project>/` on branch `feat/<project>`. Each worktree can run the pipeline independently without interfering with other projects.
-
-## Vercel Preview Workflow
-
-1. Engineer pushes code to `feat/<project>` branch
-2. Vercel automatically builds a Preview Deployment
-3. QA Reviewer checks the live preview URL as part of the review
-4. User approves and merges to `main` → Vercel Production Deployment
-
-## General Rules
-
-1. **Human-in-the-loop**: The user approves all phase transitions and major decisions (in manual mode). In autonomous mode, the user reviews the final output.
-2. **Artifact-driven**: Each agent produces structured markdown documents, not just chat responses.
-3. **Traceability**: Every decision links back through the chain (REQ → ADR → Design → Code → Review).
-4. **No assumptions**: If information is missing, ask — don't guess.
-5. **Incremental delivery**: Prefer small, reviewable increments over big-bang deliveries.
-6. **Handoff protocol**: Every agent writes a handoff summary for the next phase.
+1. **Efficiency**: Act, don't plan. Ship artifacts directly.
+2. **Scope-aware**: Scale deliverables to the SCOPE level in your prompt.
+3. **Traceability**: REQ → ADR → Design → Code → Review.
+4. **No image generation**: Write prompts only — pipeline handles NanoBanana.
