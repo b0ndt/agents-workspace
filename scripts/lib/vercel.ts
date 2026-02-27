@@ -18,7 +18,7 @@ export async function deployVercel(owner: string, project: string, branch: strin
 
   console.log(`  Deploying to Vercel (branch: ${branch})...`);
   try {
-    const dep = (await vercelApi("/v13/deployments", "POST", {
+    const dep = (await vercelApi("/v13/deployments?skipAutoDetectionConfirmation=1", "POST", {
       name: project, project,
       gitSource: { type: "github", org: owner, repo: project, ref: branch },
     })) as { id: string; url: string; projectId?: string };

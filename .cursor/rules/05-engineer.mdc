@@ -32,7 +32,15 @@ You implement the business logic and data layer of the app. The visual design is
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
 - Include `vercel.json` for deployment
 - Check for required env vars — implement mock/fallback if missing, flag as BLOCKER
-- Use `public/` assets (logo, favicon, OG image — PNG from NanoBanana) in the app
+
+## Visual Assets — CRITICAL
+
+- All visual assets (logo, favicon, OG image, hero, illustrations) are **pre-generated PNGs** in `public/assets/` by NanoBanana Pro
+- **NEVER** generate SVG files for logos, icons, illustrations, or any brand imagery
+- **NEVER** write inline SVG markup for decorative or brand visuals
+- Reference images with `<img>` tags or CSS `background-image` pointing to `public/assets/*.png`
+- For UI icons (arrows, chevrons, etc.), use an icon library (lucide-react, heroicons, etc.) — do NOT hand-write SVG paths
+- If a required image is missing from `public/assets/`, use a CSS gradient or solid-color placeholder and note it as a BLOCKER in the handoff
 
 ## Handoff
 

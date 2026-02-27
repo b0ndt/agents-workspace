@@ -186,10 +186,11 @@ function parseVisualPrompts(md: string): VisualPrompt[] {
   const blocks: VisualPrompt[] = [];
   const sections = md.split(/^##\s+/m).slice(1);
   for (const s of sections) {
-    const name = s.split("\n")[0].trim();
-    const promptMatch = s.match(/prompt:\s*["']([^"']+)["']/);
-    const sizeMatch = s.match(/size:\s*["']?([^"'\n]+)["']?/);
-    const outputMatch = s.match(/output:\s*["']?([^"'\n]+)["']?/);
+    const clean = s.replace(/\*\*/g, "");
+    const name = clean.split("\n")[0].trim();
+    const promptMatch = clean.match(/prompt:\s*["']([\s\S]+?)["']\s*\n/);
+    const sizeMatch = clean.match(/size:\s*["']?([^"'\n]+)["']?/);
+    const outputMatch = clean.match(/output:\s*["']?([^"'\n]+)["']?/);
     if (!promptMatch || !outputMatch) continue;
     blocks.push({
       name,

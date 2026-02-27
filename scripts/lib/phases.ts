@@ -102,7 +102,9 @@ ${ENV_CHECK}`;
       const dc = c.designContext;
       const components = s === "nano" ? "Button, Card" : s === "micro" ? "Button, Card, Input, Badge" : "all components visible in mockup";
       const screens = s === "nano" ? "1 primary screen" : s === "micro" ? "2-3 screens" : "all major screens";
-      const assets = s !== "nano" ? `\n6. docs/design/visual-prompts.md — PILLAR + logo/favicon/OG prompts` : "";
+      const assets = s !== "nano"
+        ? `\n6. docs/design/visual-prompts.md — ALL visual assets the app needs (see format below)`
+        : "";
       return `Design Translator. PROJECT: ${c.project} | SCOPE: ${s.toUpperCase()}
 ${dc
   ? `APPROVED: ${dc.approvedMockupUrl} (${dc.variantName})`
@@ -117,6 +119,17 @@ Analyze mockup via vision → output:
 
 Mockup = source of truth. No invention. Every value extracted from Step 1.
 DO NOT generate images. DO NOT report missing image-generation API keys as blockers. The pipeline calls NanoBanana Pro automatically after you finish.
+${s !== "nano" ? `
+visual-prompts.md FORMAT — one ## section per asset, the pipeline parses this:
+## Logo
+name: "logo"
+prompt: "<detailed image prompt with exact hex colors, style, subject>"
+size: "1:1"
+output: "public/assets/logo.png"
+
+Include ALL visual assets the app needs: logo, favicon, og-image, hero/banner image, background textures, illustrations, feature images, etc.
+Use exact hex values from design-spec.md. Each prompt must describe a photorealistic or stylized image — NOT an SVG or vector.
+Minimum assets: logo (1:1), favicon (1:1), og-image (16:9). Add hero/banner (16:9) and any other images visible in the mockup.` : ""}
 ## Handoff — artifacts, blockers unrelated to image generation
 ${ENV_CHECK}`;
     },
@@ -134,10 +147,17 @@ PROJECT: ${c.project} | SCOPE: ${s.toUpperCase()}
 1. Import from design-system/components/ui/ — theme tokens only, never hardcode
 2. Use screens/ as UI base — add logic, don't redesign
 3. Implement: routing, state, data fetching, error handling, all component states
-4. Use public/ assets (logo, favicon, OG image)
+4. Use public/assets/ images (logo.png, favicon.png, og-image.png, hero.png etc.) — they are pre-generated PNGs
 5. ${tests}
 6. vercel.json for deployment + README.md
 Conventional commits: feat/fix/refactor/test/docs
+
+CRITICAL — VISUAL ASSETS:
+- NEVER generate SVG files for logos, icons, illustrations, or any visual assets
+- NEVER write inline SVG markup for decorative/brand imagery
+- All visual assets are pre-generated PNGs in public/assets/ — use <img> tags or CSS background-image to reference them
+- For icons, use a library (lucide-react, heroicons, etc.) — do NOT hand-write SVG paths
+- If a needed image is missing from public/assets/, use a CSS gradient/solid-color placeholder and add a NOTE in the handoff
 ${ENV_CHECK}`;
     },
   },

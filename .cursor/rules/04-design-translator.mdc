@@ -61,11 +61,21 @@ One `.tsx` per major screen in the mockup:
 - Static/presentational — Engineer adds logic on top
 
 ### `docs/design/visual-prompts.md`
-Brand asset prompts for NanoBanana (follow the PILLAR format):
-- Logo: icon mark consistent with approved mockup's visual language
-- Favicon (1:1)
-- OG image (16:9)
+**ALL** visual assets the app needs, as NanoBanana prompts. One `##` section per asset:
+
+```
+## Logo
+name: "logo"
+prompt: "<detailed prompt with exact hex colors, style, subject>"
+size: "1:1"
+output: "public/assets/logo.png"
+```
+
+**Minimum** assets: logo (1:1), favicon (1:1), og-image (16:9).
+**Also include**: hero/banner image (16:9), background textures, illustrations, feature images — anything visual in the mockup that isn't a UI icon.
 - Use exact hex values from `design-spec.md`
+- Each prompt should describe a photorealistic or stylized **raster** image — never SVG or vector
+- The Engineer will reference these PNGs from `public/assets/` via `<img>` or CSS
 
 **DO NOT attempt to generate these images yourself.**
 **DO NOT report a missing image-generation API key as a blocker.**
