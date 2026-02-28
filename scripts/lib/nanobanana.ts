@@ -91,7 +91,11 @@ export async function generateDesignVariants(
     `https://api.github.com/repos/${owner}/${project}/contents/docs/design/design-exploration.md?ref=${encodeURIComponent(branch)}`,
     { headers: { Authorization: `token ${required("GITHUB_PERSONAL_ACCESS_TOKEN")}`, Accept: "application/vnd.github.raw" } },
   );
-  if (!fileRes.ok) { console.log("  No docs/design/design-exploration.md — skipping variant generation"); return []; }
+  if (!fileRes.ok) {
+    console.warn("  ⚠ WARNING: docs/design/design-exploration.md not found on branch — Design Explorer agent may not have committed it.");
+    console.warn("  → NanoBanana mockup variants will be SKIPPED. Design Translator gets no visual context.");
+    return [];
+  }
   const md = await fileRes.text();
   const directions = parseDesignExploration(md);
   if (directions.length === 0) {
@@ -161,12 +165,14 @@ export function parseDesignExploration(md: string): DesignDirection[] {
   const dirs: DesignDirection[] = [];
   const sections = md.split(/^##\s+/m).slice(1);
   for (const s of sections) {
-    const key = s.split("\n")[0].trim().toLowerCase().split(/\s/)[0];
-    if (!key.startsWith("direction-")) continue;
+    const heading = s.split("\n")[0].trim().toLowerCase();
+    // Accept: direction-1, direction 1, direction 1: Name, etc.
+    if (!/^direction[-\s]?\d/.test(heading)) continue;
+    const key = `direction-${(heading.match(/\d+/) ?? ["1"])[0]}`;
     const clean = s.replace(/\*\*/g, "");
     const nameMatch = clean.match(/name:\s*["']([^"']+)["']/);
     const philoMatch = clean.match(/philosophy:\s*["']([^"']+)["']/);
-    const promptMatch = clean.match(/prompt:\s*["']([\s\S]+?)["']\s*\n/);
+    const promptMatch = clean.match(/prompt:\s*["'`]?([\s\S]+?)["'`]?\s*\n/) ?? clean.match(/^prompt:\s*(.{20,})$/m);
     const sizeMatch = clean.match(/size:\s*["']?([^"'\n]+)["']?/);
     const outputMatch = clean.match(/output:\s*["']?([^"'\n]+)["']?/);
     if (!promptMatch || !outputMatch) continue;
@@ -188,7 +194,7 @@ function parseVisualPrompts(md: string): VisualPrompt[] {
   for (const s of sections) {
     const clean = s.replace(/\*\*/g, "");
     const name = clean.split("\n")[0].trim();
-    const promptMatch = clean.match(/prompt:\s*["']([\s\S]+?)["']\s*\n/);
+    const promptMatch = clean.match(/prompt:\s*["'`]?([\s\S]+?)["'`]?\s*\n/) ?? clean.match(/^prompt:\s*(.{20,})$/m);
     const sizeMatch = clean.match(/size:\s*["']?([^"'\n]+)["']?/);
     const outputMatch = clean.match(/output:\s*["']?([^"'\n]+)["']?/);
     if (!promptMatch || !outputMatch) continue;
